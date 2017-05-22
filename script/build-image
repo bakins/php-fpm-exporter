@@ -6,7 +6,7 @@ cd `dirname ${DIR}`
 
 VERSION=`cat VERSION`
 
-IMAGE="quay.io/bakins/php-fpm-exporter:v${VERSION}"
+IMAGE="quay.io/bakins/php-fpm-exporter:${VERSION}"
 
 docker build -t ${IMAGE} .
 docker push ${IMAGE}
