@@ -1,0 +1,20 @@
+language: go
+go:
+- 1.8.x
+notifications:
+  email: false
+install:
+- true
+script:
+- "./script/build"
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: JwGaZbfOxJCFtns3Jl9XetbXGj49GkYAZCz3Ta+sASwqmcFl+3niJ9wJkYrSzs2r6/Lxd7vSRXhalLSX8JJVzfbeNhvbteePOEPWs4vnCpVIW/859BCYZCvv8n2uyQ6ZB3enUBB14DlWGRrpOuG5JnDzrARZ5YR+DBcsZ5t8qDgdCXwgWsqNMC7tmD5QmPk+fDz+FbuO0AH4E4oZTZ05ofEJAEKuXtiqquOyjIBRas434iuv4UYLGrTvZWU2KhyKdoCI0Dl5pPmL6kfopEei5rO6Aj9vEMUlNfDyLxtLDfFl8kTIHZ0tVntI4gQGOsLj2cf3vJi688aWmTLkAdx0V+WZLw/53qQxh/nXE1G2VxKIAIaLGSVjXgT/aYPRNO9BCM+NT4BbBxV/TzA+GS6cCdek0fkFFpTWD0iSjTm+gorp65Fb996VyhWE5BJBe0ZPrOGiQsz1sWuxBBqN6dYkmxG7jasIo01SG6HpnVr/CcKccngh1oXN0TWXYro08zUObF33EqDo6fBKaEFWIZKnLRfakGv+ZmQ/e9tCMLvCpsb94KZozO/R4REMLKEUxIAN7yLEWGg/n8KJGdLIOSHBn2q5CCWoI7GEioZ4Efvv3kW39iii5wlTYVHiGppoQitm3+9nyKr4JK6KMvbjzYuvXUb3vBlftgBFIqTn/neCobw=
+  file:
+    - php-fpm-exporter.linux.amd64
+    - php-fpm-exporter.darwin.amd64
+  on:
+    repo: bakins/php-fpm-exporter
+    tags: true

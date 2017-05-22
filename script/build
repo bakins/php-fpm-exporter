@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+NAME=php-fpm-exporter
+ARCH=amd64
+
+for OS in darwin linux; do
+    CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o ${NAME}.${OS}.${ARCH} ./cmd/${NAME}
+done
