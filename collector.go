@@ -47,7 +47,7 @@ func (e *Exporter) newCollector() *collector {
 	return &collector{
 		exporter:           e,
 		up:                 newFuncMetric("up", "able to contact php-fpm"),
-		acceptedConn:       newFuncMetric("accepted_conn", "Total of accepted connections"),
+		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections"),
 		listenQueue:        newFuncMetric("listen_queue", "Number of connections that have been initiated but not yet accepted"),
 		maxListenQueue:     newFuncMetric("max_listen_queue", "Max. connections the listen queue has reached since FPM start"),
 		listenQueueLength:  newFuncMetric("listen_queue_length", "Maximum number of connections that can be queued"),
