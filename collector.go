@@ -50,7 +50,7 @@ func (e *Exporter) newCollector() *collector {
 		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections"),
 		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted"),
 		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start"),
-		listenQueueLength:  newFuncMetric("listen_queue_length", "Maximum number of connections that can be queued"),
+		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections"),
 		idleProcesses:      newFuncMetric("idle_processes", "Idle process count"),
 		activeProcesses:    newFuncMetric("active_processes", "Active process count"),
 		totalProcesses:     newFuncMetric("total_processes", "Total process count"),
