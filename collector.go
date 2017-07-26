@@ -54,7 +54,7 @@ func (e *Exporter) newCollector() *collector {
 		idleProcesses:      newFuncMetric("idle_processes", "Idle process count"),
 		activeProcesses:    newFuncMetric("active_processes", "Active process count"),
 		totalProcesses:     newFuncMetric("total_processes", "Total process count"),
-		maxActiveProcesses: newFuncMetric("max_active_processes", "Maximum active process count"),
+		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count"),
 		maxChildrenReached: newFuncMetric("max_children_reached", "Number of times the process limit has been reached"),
 		slowRequests:       newFuncMetric("slow_requests", "Number of requests that exceed request_slowlog_timeout"),
 		scrapeFailures:     newFuncMetric("scrape_failures", "Number of errors while scraping php_fpm"),
