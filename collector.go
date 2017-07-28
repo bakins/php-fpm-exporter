@@ -24,9 +24,7 @@ type collector struct {
 	listenQueue        *prometheus.Desc
 	maxListenQueue     *prometheus.Desc
 	listenQueueLength  *prometheus.Desc
-	idleProcesses      *prometheus.Desc
-	activeProcesses    *prometheus.Desc
-	totalProcesses     *prometheus.Desc
+	phpProcesses       *prometheus.Desc
 	maxActiveProcesses *prometheus.Desc
 	maxChildrenReached *prometheus.Desc
 	slowRequests       *prometheus.Desc
@@ -36,28 +34,26 @@ type collector struct {
 
 const metricsNamespace = "phpfpm"
 
-func newFuncMetric(metricName string, docString string) *prometheus.Desc {
+func newFuncMetric(metricName string, docString string, labels []string) *prometheus.Desc {
 	return prometheus.NewDesc(
 		prometheus.BuildFQName(metricsNamespace, "", metricName),
-		docString, nil, nil,
+		docString, labels, nil,
 	)
 }
 
 func (e *Exporter) newCollector() *collector {
 	return &collector{
 		exporter:           e,
-		up:                 newFuncMetric("up", "able to contact php-fpm"),
-		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections"),
-		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted"),
-		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start"),
-		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections"),
-		idleProcesses:      newFuncMetric("idle_processes", "Idle process count"),
-		activeProcesses:    newFuncMetric("active_processes", "Active process count"),
-		totalProcesses:     newFuncMetric("total_processes", "Total process count"),
-		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count"),
-		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached"),
-		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout"),
-		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm"),
+		up:                 newFuncMetric("up", "able to contact php-fpm", nil),
+		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", nil),
+		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", nil),
+		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start", nil),
+		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections", nil),
+		phpProcesses:       newFuncMetric("processes_total", "process count", []string{"state"}),
+		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count", nil),
+		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", nil),
+		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", nil),
+		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", nil),
 	}
 }
 
@@ -68,9 +64,7 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.listenQueue
 	ch <- c.maxListenQueue
 	ch <- c.listenQueueLength
-	ch <- c.idleProcesses
-	ch <- c.activeProcesses
-	ch <- c.totalProcesses
+	ch <- c.phpProcesses
 	ch <- c.maxActiveProcesses
 	ch <- c.maxChildrenReached
 	ch <- c.slowRequests
@@ -140,6 +134,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 
 		var desc *prometheus.Desc
 		var valueType prometheus.ValueType
+		labels := []string{}
 
 		switch key {
 		case "accepted conn":
@@ -155,14 +150,13 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 			desc = c.listenQueueLength
 			valueType = prometheus.GaugeValue
 		case "idle processes":
-			desc = c.idleProcesses
+			desc = c.phpProcesses
 			valueType = prometheus.GaugeValue
+			labels = append(labels, "idle")
 		case "active processes":
-			desc = c.activeProcesses
+			desc = c.phpProcesses
 			valueType = prometheus.GaugeValue
-		case "total processes":
-			desc = c.totalProcesses
-			valueType = prometheus.GaugeValue
+			labels = append(labels, "active")
 		case "max active processes":
 			desc = c.maxActiveProcesses
 			valueType = prometheus.CounterValue
@@ -176,7 +170,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
-		m, err := prometheus.NewConstMetric(desc, valueType, float64(value))
+		m, err := prometheus.NewConstMetric(desc, valueType, float64(value), labels...)
 		if err != nil {
 			c.exporter.logger.Error(
 				"failed to create metrics",
@@ -189,34 +183,3 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		ch <- m
 	}
 }
-
-/*
-func (c *collector) collectThreads(ch chan<- prometheus.Metric) {
-	t, err := c.driveshaft.getThreads()
-	if err != nil {
-		c.exporter.logger.Error("failed to get driveshaft status", zap.Error(err))
-		ch <- prometheus.MustNewConstMetric(
-			c.up,
-			prometheus.GaugeValue,
-			float64(0),
-		)
-		return
-	}
-
-	ch <- prometheus.MustNewConstMetric(
-		c.up,
-		prometheus.GaugeValue,
-		float64(1),
-	)
-
-	for _, v := range t {
-		ch <- prometheus.MustNewConstMetric(
-			c.threadsGauge,
-			prometheus.GaugeValue,
-			float64(v.count),
-			v.function, v.state)
-
-	}
-}
-
-*/

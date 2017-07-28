@@ -38,7 +38,7 @@ Usage:
 
 Flags:
       --addr string       listen address for metrics handler (default "127.0.0.1:8080")
-      --endpoint string   address of driveshaft (default "http://127.0.0.1:9000/status")
+      --endpoint string   url of php-fpm (default "http://127.0.0.1:9000/status")
 ```
 
 When running, a simple healthcheck is available on `/healthz`
