@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eux
 NAME=php-fpm-exporter
 ARCH=amd64
 
