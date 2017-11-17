@@ -22,6 +22,7 @@ import (
 type Exporter struct {
 	addr     string
 	endpoint *url.URL
+	origEndpoint string
 	logger   *zap.Logger
 }
 
@@ -52,6 +53,7 @@ func New(options ...OptionsFunc) (*Exporter, error) {
 		u, _ := url.Parse("http://localhost:9000/status")
 		e.endpoint = u
 	}
+	e.origEndpoint = e.endpoint.String()
 	return e, nil
 }
 
@@ -97,6 +99,22 @@ func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
 	w.Write(healthzOK)
 }
 
+
+
+
+func (e *Exporter) queryHandler(h http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+      pool := r.URL.Query().Get("pool")
+      if pool != "" {
+	    e.endpoint, _ = url.Parse(e.origEndpoint + "/" + pool)
+      } else {
+    	    e.endpoint, _ = url.Parse(e.origEndpoint)
+      }
+      h.ServeHTTP(w, r)
+    })
+}
+
 // Run starts the http server and collecting metrics. It generally does not return.
 func (e *Exporter) Run() error {
 
@@ -108,7 +126,7 @@ func (e *Exporter) Run() error {
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	http.HandleFunc("/healthz", e.healthz)
-	http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/metrics", e.queryHandler(promhttp.Handler()))
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
