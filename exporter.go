@@ -101,7 +101,8 @@ func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
 
 
 
-
+// creates a wrapper for an http.Handler, where the wrapper changes the endpoint according to the query parameter "pool"
+// this is intended to be used in multi-pool setups, by having nginx or apache forward the URL http://endpoint?pool=X to a /status request on fpm pool X
 func (e *Exporter) queryHandler(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
