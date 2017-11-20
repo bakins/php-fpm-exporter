@@ -12,8 +12,7 @@ import (
 var (
         addr     *string
         endpoint *string
-        clientcert *string
-        clientkey *string
+        httpconf *string
 )
 
 func serverCmd(cmd *cobra.Command, args []string) {
@@ -27,7 +26,7 @@ func serverCmd(cmd *cobra.Command, args []string) {
                 exporter.SetAddress(*addr),
                 exporter.SetEndpoint(*endpoint),
                 exporter.SetLogger(logger),
-                exporter.SetCerts(*clientcert, *clientkey),
+                exporter.SetHttpConf(*httpconf),
         )
 
         if err != nil {
@@ -48,8 +47,7 @@ var rootCmd = &cobra.Command{
 func main() {
         addr = rootCmd.PersistentFlags().StringP("addr", "", "127.0.0.1:8080", "listen address for metrics handler")
         endpoint = rootCmd.PersistentFlags().StringP("endpoint", "", "http://127.0.0.1:9000/status", "url for php-fpm status")
-        clientcert = rootCmd.PersistentFlags().StringP("client.cert", "", "", "path to client cert file")
-        clientkey = rootCmd.PersistentFlags().StringP("client.key", "", "", "path to client key file")
+        httpconf = rootCmd.PersistentFlags().StringP("http.conf", "", "", "path to http parameters config file (tls, authbasic)")
 
         if err := rootCmd.Execute(); err != nil {
                 fmt.Printf("root command failed: %v", err)

@@ -10,6 +10,9 @@ import (
     "syscall"
     "time"
 
+    "gopkg.in/yaml.v2"
+    "io/ioutil"
+
     "go.uber.org/zap"
 
     "github.com/pkg/errors"
@@ -18,14 +21,23 @@ import (
     "golang.org/x/sync/errgroup"
 )
 
+
+type conf struct {
+    ClientCert string `yaml:"clientcert"`
+    ClientKey string `yaml:"clientkey"`
+    AuthUser string `yaml:"authuser"`
+    AuthPass string `yaml:"authpass"`
+}
+
+
+
 // Exporter handles serving the metrics
 type Exporter struct {
     addr     string
     endpoint *url.URL
     origEndpoint string
     logger   *zap.Logger
-    clientcert string
-    clientkey string
+    httpconf conf
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -96,16 +108,34 @@ func SetEndpoint(rawurl string) func(*Exporter) error {
 }
 
 
-// SetEndpoint creates a function that will set the URL endpoint to contact
-// php-fpm.
-// Generally only used when create a new Exporter.
-func SetCerts(cert, key string) func(*Exporter) error {
+func SetHttpConf(hf string) func(*Exporter) error {
     return func(e *Exporter) error {
-        e.clientcert = cert
-        e.clientkey = key
+        cf, err := readHttpConf(hf)
+        if err != nil {
+            return errors.Wrap(err, "failed to read http config")
+        }
+        e.httpconf = cf
         return nil
     }
 }
+
+
+func readHttpConf(hf string) (conf, error) {
+
+    var c conf
+
+    yamlFile, err := ioutil.ReadFile(hf)
+    if err != nil {
+        return c, errors.Wrap(err, "failed to read http config file")
+    }
+
+    err = yaml.Unmarshal(yamlFile, &c)
+    if err != nil {
+        return c, errors.Wrap(err, "failed to unmarshal http config")
+    }
+    return c, nil
+}
+
 
 var healthzOK = []byte("ok\n")
 

@@ -1,0 +1,4 @@
+clientcert: /etc/prometheus/certs/user.crt
+clientkey: /etc/prometheus/certs/user.key
+authuser: user
+authpass: pass

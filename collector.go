@@ -86,9 +86,15 @@ func (c *collector) getData(u *url.URL) ([]byte, error) {
 
 
     var client *http.Client
-    
-    if (c.exporter.clientcert != "") {
-        cert, err := tls.LoadX509KeyPair(c.exporter.clientcert, c.exporter.clientkey)
+/*
+  ClientCert string `yaml:"clientcert"`
+    ClientKey string `yaml:"clientkey"`
+    AuthUser string `yaml:"authuser"`
+    AuthPass string `yaml:"authpass"`
+    */
+
+    if (c.exporter.httpconf.ClientCert != "") {
+        cert, err := tls.LoadX509KeyPair(c.exporter.httpconf.ClientCert, c.exporter.httpconf.ClientKey)
         if err != nil {
             return nil, errors.Wrap(err, "Could not load cert and/or key")
         }
@@ -104,6 +110,11 @@ func (c *collector) getData(u *url.URL) ([]byte, error) {
     } else {
         client = http.DefaultClient
     }
+
+    if (c.exporter.httpconf.AuthUser != "") {
+        req.SetBasicAuth(c.exporter.httpconf.AuthUser, c.exporter.httpconf.AuthPass)
+    }
+
 
     resp, err := client.Do(&req)
     if err != nil {
