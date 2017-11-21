@@ -4,15 +4,15 @@ import (
         "fmt"
         "os"
 
-        exporter "github.com/bakins/php-fpm-exporter"
+	exporter "github.com/bakins/php-fpm-exporter"
+
         "github.com/spf13/cobra"
         "go.uber.org/zap"
 )
 
 var (
         addr     *string
-        endpoint *string
-        httpconf *string
+        confpath *string
 )
 
 func serverCmd(cmd *cobra.Command, args []string) {
@@ -24,9 +24,8 @@ func serverCmd(cmd *cobra.Command, args []string) {
 
         e, err := exporter.New(
                 exporter.SetAddress(*addr),
-                exporter.SetEndpoint(*endpoint),
                 exporter.SetLogger(logger),
-                exporter.SetHttpConf(*httpconf),
+                exporter.SetConfPath(*confpath),
         )
 
         if err != nil {
@@ -46,8 +45,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
         addr = rootCmd.PersistentFlags().StringP("addr", "", "127.0.0.1:8080", "listen address for metrics handler")
-        endpoint = rootCmd.PersistentFlags().StringP("endpoint", "", "http://127.0.0.1:9000/status", "url for php-fpm status")
-        httpconf = rootCmd.PersistentFlags().StringP("http.conf", "", "", "path to http parameters config file (tls, authbasic)")
+        confpath = rootCmd.PersistentFlags().StringP("http.conf", "", "", "path to config file")
 
         if err := rootCmd.Execute(); err != nil {
                 fmt.Printf("root command failed: %v", err)

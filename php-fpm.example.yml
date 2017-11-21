@@ -1,4 +1,21 @@
-clientcert: /etc/prometheus/certs/user.crt
-clientkey: /etc/prometheus/certs/user.key
-authuser: user
-authpass: pass
+endpoints:
+  default:
+      clientcert: /etc/prometheus/certs/user.crt
+      clientkey: /etc/prometheus/certs/user.key
+      authuser: user
+      authpass: pass
+      baseurl: https://www.example.com/fpm-metrics
+  serveralias1:
+      clientcert: /etc/prometheus/certs/user.crt
+      clientkey: /etc/prometheus/certs/user.key
+      authuser: user
+      authpass: pass
+      baseurl: https://www.example.com/fpm-metrics
+  serveralias2:
+      clientcert: /etc/prometheus/certs/user.crt
+      clientkey: /etc/prometheus/certs/user.key
+      authuser: user
+      authpass: pass
+      baseurl: https://www.example.com/fpm-metrics
+
+

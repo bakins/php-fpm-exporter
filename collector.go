@@ -10,6 +10,8 @@ import (
     "regexp"
     "strconv"
 
+    "gopkg.in/yaml.v2"
+
     "go.uber.org/zap"
 
     "github.com/pkg/errors"
@@ -18,10 +20,24 @@ import (
 
 var (
     statusLineRegexp = regexp.MustCompile(`(?m)^(.*):\s+(.*)$`)
+    emptyDefaults = confdetails{ClientCert: "", ClientKey: "", AuthUser:"", AuthPass:"", BaseURL: "http://localhost:9000"}
 )
+
+type confdetails struct {
+    ClientCert string `yaml:"clientcert"`
+    ClientKey string `yaml:"clientkey"`
+    AuthUser string `yaml:"authuser"`
+    AuthPass string `yaml:"authpass"`
+    BaseURL string `yaml:"baseurl"`
+}
+
+type conf struct {
+    Endpoints map[string]confdetails `yaml:"endpoints"`
+}
 
 type collector struct {
     exporter           *Exporter
+    httpconf           *conf
     up                 *prometheus.Desc
     acceptedConn       *prometheus.Desc
     listenQueue        *prometheus.Desc
@@ -44,9 +60,35 @@ func newFuncMetric(metricName string, docString string, labels []string) *promet
     )
 }
 
-func (e *Exporter) newCollector() *collector {
+
+func readHttpConf(path string) (conf, error) {
+
+    var c conf
+
+    yamlFile, err := ioutil.ReadFile(path)
+    if err != nil {
+        return c, errors.Wrap(err, "failed to read http config file")
+    }
+
+    err = yaml.Unmarshal(yamlFile, &c)
+    if err != nil {
+        return c, errors.Wrap(err, "failed to unmarshal http config")
+    }
+    return c, nil
+}
+
+
+
+func (e *Exporter) newCollector() (*collector, error) {
+
+    cf, err := readHttpConf(e.confpath)
+    if err != nil {
+         return nil, errors.Wrap(err, "failed to read http config")
+    }
+
     return &collector{
         exporter:           e,
+        httpconf:           &cf,
         up:                 newFuncMetric("up", "able to contact php-fpm", nil),
         acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", nil),
         listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", nil),
@@ -57,7 +99,7 @@ func (e *Exporter) newCollector() *collector {
         maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", nil),
         slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", nil),
         scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", nil),
-    }
+    }, nil
 }
 
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {
@@ -73,28 +115,26 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
     ch <- c.slowRequests
 }
 
-func (c *collector) getData(u *url.URL) ([]byte, error) {
-    req := http.Request{
-        Method:     "GET",
-        URL:        u,
-        Proto:      "HTTP/1.1",
-        ProtoMajor: 1,
-        ProtoMinor: 1,
-        Header:     make(http.Header),
-        Host:       u.Host,
+func (c *collector) getConfig(endpoint string) confdetails {
+    cfdetail, ok := c.httpconf.Endpoints[endpoint]
+    if !ok {
+    	cfdetail, ok = c.httpconf.Endpoints["default"]
     }
+    if !ok {
+	cfdetail = emptyDefaults
+    }
+    return cfdetail
+}
 
+
+func (c *collector) getClient(endpoint string) (*http.Client, error) {
 
     var client *http.Client
-/*
-  ClientCert string `yaml:"clientcert"`
-    ClientKey string `yaml:"clientkey"`
-    AuthUser string `yaml:"authuser"`
-    AuthPass string `yaml:"authpass"`
-    */
+    
+    cfdetail := c.getConfig(endpoint)
 
-    if (c.exporter.httpconf.ClientCert != "") {
-        cert, err := tls.LoadX509KeyPair(c.exporter.httpconf.ClientCert, c.exporter.httpconf.ClientKey)
+    if (cfdetail.ClientCert != "") {
+        cert, err := tls.LoadX509KeyPair(cfdetail.ClientCert, cfdetail.ClientKey)
         if err != nil {
             return nil, errors.Wrap(err, "Could not load cert and/or key")
         }
@@ -111,12 +151,48 @@ func (c *collector) getData(u *url.URL) ([]byte, error) {
         client = http.DefaultClient
     }
 
-    if (c.exporter.httpconf.AuthUser != "") {
-        req.SetBasicAuth(c.exporter.httpconf.AuthUser, c.exporter.httpconf.AuthPass)
+    return client, nil
+}
+
+func (c *collector) getRequest(endpoint, pool string) (*http.Request, error) {
+    cfdetail := c.getConfig(endpoint)
+    if (cfdetail.BaseURL != "") {
+       u, err := url.Parse(cfdetail.BaseURL + "/" + pool)
+       if err != nil {
+           return nil, errors.Wrap(err, "Could not parse combined URL")
+       }	
+       req := &http.Request{
+         Method:     "GET",
+         URL:        u,
+         Proto:      "HTTP/1.1",
+         ProtoMajor: 1,
+         ProtoMinor: 1,
+         Header:     make(http.Header),
+         Host:       u.Host,
+       }
+       if (cfdetail.AuthUser != "") {
+         req.SetBasicAuth(cfdetail.AuthUser, cfdetail.AuthPass)
+       }
+       return req, nil
+    } else {
+       return nil, errors.New("Could not find base Url in config")
+    }
+}
+
+func (c *collector) getData(endpoint, pool string) ([]byte, error) {
+
+    var client *http.Client
+    var req *http.Request
+    var err error
+
+    if client, err = c.getClient(endpoint); err != nil {
+            return nil, errors.Wrap(err, "Could not create http client")
+    }
+    if req, err = c.getRequest(endpoint, pool); err != nil {
+            return nil, errors.Wrap(err, "Could not create http request")
     }
 
-
-    resp, err := client.Do(&req)
+    resp, err := client.Do(req)
     if err != nil {
         return nil, errors.Wrap(err, "HTTP request failed")
     }
@@ -137,7 +213,7 @@ func (c *collector) getData(u *url.URL) ([]byte, error) {
 
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
     up := 1.0
-    body, err := c.getData(c.exporter.endpoint)
+    body, err := c.getData(c.exporter.currentEndpoint, c.exporter.currentPool)
     if err != nil {
         up = 0.0
         c.exporter.logger.Error("failed to get php-fpm status", zap.Error(err))

@@ -4,14 +4,10 @@ import (
     "context"
     "net"
     "net/http"
-    "net/url"
     "os"
     "os/signal"
     "syscall"
     "time"
-
-    "gopkg.in/yaml.v2"
-    "io/ioutil"
 
     "go.uber.org/zap"
 
@@ -21,23 +17,13 @@ import (
     "golang.org/x/sync/errgroup"
 )
 
-
-type conf struct {
-    ClientCert string `yaml:"clientcert"`
-    ClientKey string `yaml:"clientkey"`
-    AuthUser string `yaml:"authuser"`
-    AuthPass string `yaml:"authpass"`
-}
-
-
-
 // Exporter handles serving the metrics
 type Exporter struct {
     addr     string
-    endpoint *url.URL
-    origEndpoint string
     logger   *zap.Logger
-    httpconf conf
+    confpath string
+    currentEndpoint string
+    currentPool string
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -62,12 +48,6 @@ func New(options ...OptionsFunc) (*Exporter, error) {
         }
         e.logger = l
     }
-
-    if e.endpoint == nil {
-        u, _ := url.Parse("http://localhost:9000/status")
-        e.endpoint = u
-    }
-    e.origEndpoint = e.endpoint.String()
     return e, nil
 }
 
@@ -93,47 +73,11 @@ func SetAddress(addr string) func(*Exporter) error {
     }
 }
 
-// SetEndpoint creates a function that will set the URL endpoint to contact
-// php-fpm.
-// Generally only used when create a new Exporter.
-func SetEndpoint(rawurl string) func(*Exporter) error {
+func SetConfPath(path string) func(*Exporter) error {
     return func(e *Exporter) error {
-        u, err := url.Parse(rawurl)
-        if err != nil {
-            return errors.Wrap(err, "failed to parse url")
-        }
-        e.endpoint = u
+        e.confpath = path
         return nil
     }
-}
-
-
-func SetHttpConf(hf string) func(*Exporter) error {
-    return func(e *Exporter) error {
-        cf, err := readHttpConf(hf)
-        if err != nil {
-            return errors.Wrap(err, "failed to read http config")
-        }
-        e.httpconf = cf
-        return nil
-    }
-}
-
-
-func readHttpConf(hf string) (conf, error) {
-
-    var c conf
-
-    yamlFile, err := ioutil.ReadFile(hf)
-    if err != nil {
-        return c, errors.Wrap(err, "failed to read http config file")
-    }
-
-    err = yaml.Unmarshal(yamlFile, &c)
-    if err != nil {
-        return c, errors.Wrap(err, "failed to unmarshal http config")
-    }
-    return c, nil
 }
 
 
@@ -145,17 +89,12 @@ func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
 
 
 
-// creates a wrapper for an http.Handler, where the wrapper changes the endpoint according to the query parameter "pool"
-// this is intended to be used in multi-pool setups, by having nginx or apache forward the URL http://endpoint?pool=X to a /status request on fpm pool X
+// creates a wrapper for an http.Handler, where the wrapper changes the endpoint and pool according to the query parameters
+// this is intended to be used in multi-endpoint, multi-pool setups, by having nginx or apache forward the URL http://endpoint?pool=X to a /status request on fpm pool X
 func (e *Exporter) queryHandler(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-      pool := r.URL.Query().Get("pool")
-      if pool != "" {
-        e.endpoint, _ = url.Parse(e.origEndpoint + "/" + pool)
-      } else {
-            e.endpoint, _ = url.Parse(e.origEndpoint)
-      }
+      e.currentPool = r.URL.Query().Get("pool")
+      e.currentEndpoint = r.URL.Query().Get("endpoint")
       h.ServeHTTP(w, r)
     })
 }
@@ -163,8 +102,14 @@ func (e *Exporter) queryHandler(h http.Handler) http.Handler {
 // Run starts the http server and collecting metrics. It generally does not return.
 func (e *Exporter) Run() error {
 
-    c := e.newCollector()
-    if err := prometheus.Register(c); err != nil {
+    var c *collector
+    var err error
+
+    if c, err = e.newCollector(); err != nil {
+        return errors.Wrap(err, "failed to create collector")
+    }
+
+    if err = prometheus.Register(c); err != nil {
         return errors.Wrap(err, "failed to register metrics")
     }
     prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
