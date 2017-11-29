@@ -4,6 +4,7 @@ import (
     "context"
     "net"
     "net/http"
+    "net/url"
     "os"
     "os/signal"
     "syscall"
@@ -22,8 +23,7 @@ type Exporter struct {
     addr     string
     logger   *zap.Logger
     confpath string
-    currentEndpoint string
-    currentPool string
+    queryParams Values
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -81,20 +81,11 @@ func SetConfPath(path string) func(*Exporter) error {
 }
 
 
-var healthzOK = []byte("ok\n")
-
-func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
-    w.Write(healthzOK)
-}
-
-
-
 // creates a wrapper for an http.Handler, where the wrapper changes the endpoint and pool according to the query parameters
 // this is intended to be used in multi-endpoint, multi-pool setups, by having nginx or apache forward the URL http://endpoint?pool=X to a /status request on fpm pool X
 func (e *Exporter) queryHandler(h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      e.currentPool = r.URL.Query().Get("pool")
-      e.currentEndpoint = r.URL.Query().Get("endpoint")
+      e.queryParams = r.URL.Query()
       h.ServeHTTP(w, r)
     })
 }
@@ -115,7 +106,6 @@ func (e *Exporter) Run() error {
     prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
     prometheus.Unregister(prometheus.NewGoCollector())
 
-    http.HandleFunc("/healthz", e.healthz)
     http.Handle("/metrics", e.queryHandler(promhttp.Handler()))
     stopChan := make(chan os.Signal)
     signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)

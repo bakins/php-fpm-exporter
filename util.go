@@ -3,7 +3,7 @@ package exporter
 import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-)
+) 
 
 // NewLogger creates a new logger with our prefered options
 func NewLogger() (*zap.Logger, error) {
