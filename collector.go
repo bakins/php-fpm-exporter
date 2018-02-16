@@ -86,6 +86,8 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 		return nil, errors.Wrap(err, "fastcgi dial failed")
 	}
 
+	defer fcgi.Close()
+
 	resp, err := fcgi.Get(env)
 	if err != nil {
 		return nil, errors.Wrap(err, "fastcgi get failed")
@@ -93,8 +95,8 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, errors.Errorf("unexpected HTTP status: %d", resp.StatusCode)
+	if resp.StatusCode != 200 && resp.StatusCode != 0 {
+		return nil, errors.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
