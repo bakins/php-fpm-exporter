@@ -1,5 +1,5 @@
-hash: a3258c0c9257dc41e469fe9154f713166e507138b740fedac32d4d12164b93c0
-updated: 2017-05-22T14:34:05.037422713-04:00
+hash: 88f46286be12bf02e0b6a2a7353aae68a89b8cec7717861cf3b9b9339de020cb
+updated: 2018-02-16T09:26:34.827292414-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -40,10 +40,12 @@ imports:
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - name: github.com/spf13/pflag
   version: 5ccb023bc27df288a957c5e994cd44fd19619465
+- name: github.com/tomasen/fcgi_client
+  version: d32b71631a94113ee01855724d1038485a396b6f
 - name: go.uber.org/atomic
-  version: 4e336646b2ef9fc6e47be8e21594178f98e5ebcf
+  version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
 - name: go.uber.org/zap
-  version: fab453050a7a08c35f31fc5fff6f2dbd962285ab
+  version: 9cabc84638b70e564c3dab2766efcb1ded2aac9f
   subpackages:
   - buffer
   - internal/bufferpool

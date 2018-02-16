@@ -20,9 +20,10 @@ import (
 
 // Exporter handles serving the metrics
 type Exporter struct {
-	addr     string
-	endpoint *url.URL
-	logger   *zap.Logger
+	addr         string
+	endpoint     *url.URL
+	fcgiEndpoint *url.URL
+	logger       *zap.Logger
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -48,7 +49,7 @@ func New(options ...OptionsFunc) (*Exporter, error) {
 		e.logger = l
 	}
 
-	if e.endpoint == nil {
+	if e.endpoint == nil && e.fcgiEndpoint == nil {
 		u, _ := url.Parse("http://localhost:9000/status")
 		e.endpoint = u
 	}
@@ -87,6 +88,20 @@ func SetEndpoint(rawurl string) func(*Exporter) error {
 			return errors.Wrap(err, "failed to parse url")
 		}
 		e.endpoint = u
+		return nil
+	}
+}
+
+// SetFastcgi creates a function that will set the fastcgi URL endpoint to contact
+// php-fpm. If this is set, then fastcgi is used rather than HTTP.
+// Generally only used when create a new Exporter.
+func SetFastcgi(rawurl string) func(*Exporter) error {
+	return func(e *Exporter) error {
+		u, err := url.Parse(rawurl)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse url")
+		}
+		e.fcgiEndpoint = u
 		return nil
 	}
 }

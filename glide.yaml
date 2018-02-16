@@ -13,3 +13,4 @@ import:
 - package: golang.org/x/sync
   subpackages:
   - errgroup
+- package: github.com/tomasen/fcgi_client

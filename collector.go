@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"go.uber.org/zap"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	fcgiclient "github.com/tomasen/fcgi_client"
+	"go.uber.org/zap"
 )
 
 var (
@@ -70,7 +70,42 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.slowRequests
 }
 
-func getData(u *url.URL) ([]byte, error) {
+func getDataFastcgi(u *url.URL) ([]byte, error) {
+	path := u.Path
+	if path == "" {
+		path = "/status"
+	}
+
+	env := map[string]string{
+		"SCRIPT_FILENAME": path,
+		"SCRIPT_NAME":     path,
+	}
+
+	fcgi, err := fcgiclient.Dial(u.Scheme, u.Host)
+	if err != nil {
+		return nil, errors.Wrap(err, "fastcgi dial failed")
+	}
+
+	resp, err := fcgi.Get(env)
+	if err != nil {
+		return nil, errors.Wrap(err, "fastcgi get failed")
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, errors.Errorf("unexpected HTTP status: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read fastcgi body")
+	}
+
+	return body, nil
+}
+
+func getDataHTTP(u *url.URL) ([]byte, error) {
 	req := http.Request{
 		Method:     "GET",
 		URL:        u,
@@ -102,7 +137,17 @@ func getData(u *url.URL) ([]byte, error) {
 
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	up := 1.0
-	body, err := getData(c.exporter.endpoint)
+	var (
+		body []byte
+		err  error
+	)
+
+	if c.exporter.fcgiEndpoint != nil {
+		body, err = getDataFastcgi(c.exporter.fcgiEndpoint)
+	} else {
+		body, err = getDataHTTP(c.exporter.endpoint)
+	}
+
 	if err != nil {
 		up = 0.0
 		c.exporter.logger.Error("failed to get php-fpm status", zap.Error(err))
