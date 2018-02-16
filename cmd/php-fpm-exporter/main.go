@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	addr     *string
-	endpoint *string
+	addr         *string
+	endpoint     *string
+	fcgiEndpoint *string
 )
 
 func serverCmd(cmd *cobra.Command, args []string) {
@@ -24,6 +25,7 @@ func serverCmd(cmd *cobra.Command, args []string) {
 	e, err := exporter.New(
 		exporter.SetAddress(*addr),
 		exporter.SetEndpoint(*endpoint),
+		exporter.SetFastcgi(*fcgiEndpoint),
 		exporter.SetLogger(logger),
 	)
 
@@ -45,6 +47,7 @@ var rootCmd = &cobra.Command{
 func main() {
 	addr = rootCmd.PersistentFlags().StringP("addr", "", "127.0.0.1:8080", "listen address for metrics handler")
 	endpoint = rootCmd.PersistentFlags().StringP("endpoint", "", "http://127.0.0.1:9000/status", "url for php-fpm status")
+	fcgiEndpoint = rootCmd.PersistentFlags().String("fastcgi", "", "fastcgi url. If this is set, fastcgi will be used instead of HTTP")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("root command failed: %v", err)
