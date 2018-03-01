@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
+set -eu
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd `dirname ${DIR}`
 
-./script/build
+docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
 
-VERSION=`cat VERSION`
-
-IMAGE="bakins/php-fpm-exporter:${VERSION}"
+IMAGE="bakins/php-fpm-exporter:${$TRAVIS_TAG}"
 
 docker build -t ${IMAGE} .
 
-docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-
 docker push ${IMAGE}
+
