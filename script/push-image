@@ -5,7 +5,7 @@ cd `dirname ${DIR}`
 
 docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
 
-IMAGE="bakins/php-fpm-exporter:${$TRAVIS_TAG}"
+IMAGE="bakins/php-fpm-exporter:${TRAVIS_TAG}"
 
 docker build -t ${IMAGE} .
 

@@ -15,7 +15,8 @@ deploy:
   skip_cleanup: true
   script: bash ./script/push-image
   on:
-    branch: travis
+    repo: bakins/php-fpm-exporter
+    tags: true
 - provider: releases
   skip_cleanup: true
   api_key:
