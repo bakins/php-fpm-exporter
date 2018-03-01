@@ -9,7 +9,7 @@ notifications:
 install:
 - true
 script:
-- "./script/build-image"
+- "./script/push-image"
 deploy:
   provider: releases
   skip_cleanup: true
