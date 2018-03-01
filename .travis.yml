@@ -1,12 +1,15 @@
+sudo: required
+services:
+  - docker
 language: go
 go:
-- 1.8.x
+- "1.10.x"
 notifications:
   email: false
 install:
 - true
 script:
-- "./script/build"
+- "./script/build-image"
 deploy:
   provider: releases
   skip_cleanup: true
