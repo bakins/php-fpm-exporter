@@ -83,6 +83,9 @@ func SetAddress(addr string) func(*Exporter) error {
 // Generally only used when create a new Exporter.
 func SetEndpoint(rawurl string) func(*Exporter) error {
 	return func(e *Exporter) error {
+		if rawurl == "" {
+			return nil
+		}
 		u, err := url.Parse(rawurl)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse url")
@@ -97,6 +100,9 @@ func SetEndpoint(rawurl string) func(*Exporter) error {
 // Generally only used when create a new Exporter.
 func SetFastcgi(rawurl string) func(*Exporter) error {
 	return func(e *Exporter) error {
+		if rawurl == "" {
+			return nil
+		}
 		u, err := url.Parse(rawurl)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse url")
