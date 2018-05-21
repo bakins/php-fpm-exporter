@@ -72,8 +72,13 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 
 func getDataFastcgi(u *url.URL) ([]byte, error) {
 	path := u.Path
-	if path == "" {
+	host := u.Host
+
+	if path == "" || u.Scheme == "unix" {
 		path = "/status"
+	}
+	if u.Scheme == "unix" {
+		host = u.Path
 	}
 
 	env := map[string]string{
@@ -81,7 +86,7 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 		"SCRIPT_NAME":     path,
 	}
 
-	fcgi, err := fcgiclient.Dial(u.Scheme, u.Host)
+	fcgi, err := fcgiclient.Dial(u.Scheme, host)
 	if err != nil {
 		return nil, errors.Wrap(err, "fastcgi dial failed")
 	}
