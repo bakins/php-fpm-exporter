@@ -3,6 +3,8 @@ set -eux
 NAME=php-fpm-exporter
 ARCH=amd64
 
+export GOFLAGS=-mod=vendor
+
 for OS in darwin linux; do
     FILE=${NAME}.${OS}.${ARCH}
     CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o ${FILE} ./cmd/${NAME}
