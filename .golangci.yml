@@ -1,0 +1,13 @@
+run:
+  tests: true
+linters:
+  disable-all: true
+  enable:
+  - deadcode
+  - errcheck
+  - goconst
+  - goimports
+  - golint
+  - gosimple
+  - govet
+  - ineffassign
