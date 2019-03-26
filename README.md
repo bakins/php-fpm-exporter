@@ -10,13 +10,13 @@ Also availible on Docker Hub [bakins/php-fpm-exporter](https://hub.docker.com/r/
 Build
 =====
 
-Requires [Go](https://golang.org/doc/install). Tested with Go 1.8+.
+Requires [Go](https://golang.org/doc/install). Tested with Go 1.12.
 
-Clone this repo into your `GOPATH` (`$HOME/go` by default) and run build:
+Clone this repo locally and run build:
 
 ```
-mkdir -p $HOME/go/src/github.com/bakins
-cd $HOME/go/src/github.com/bakins
+mkdir -p $HOME/src
+cd $HOME/src
 git clone https://github.com/bakins/php-fpm-exporter
 cd php-fpm-exporter
 ./script/build
