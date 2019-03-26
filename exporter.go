@@ -145,7 +145,6 @@ func (e *Exporter) Run() error {
 	http.Handle(e.metricsEndpoint, promhttp.Handler())
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
 		_, _ = w.Write([]byte(`<html>
 			<head><title>php-fpm exporter</title></head>
 			<body>
