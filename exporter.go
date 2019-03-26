@@ -118,7 +118,7 @@ func SetFastcgi(rawurl string) func(*Exporter) error {
 func SetMetricsEndpoint(path string) func(*Exporter) error {
 	return func(e *Exporter) error {
 		if path == "" || path == "/" {
-
+			return nil
 		}
 		e.metricsEndpoint = path
 		return nil
