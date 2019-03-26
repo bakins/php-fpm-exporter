@@ -128,7 +128,7 @@ func SetMetricsEndpoint(path string) func(*Exporter) error {
 var healthzOK = []byte("ok\n")
 
 func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
-	w.Write(healthzOK)
+	_, _ = w.Write(healthzOK)
 }
 
 // Run starts the http server and collecting metrics. It generally does not return.
@@ -145,7 +145,8 @@ func (e *Exporter) Run() error {
 	http.Handle(e.metricsEndpoint, promhttp.Handler())
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+
+		_, _ = w.Write([]byte(`<html>
 			<head><title>php-fpm exporter</title></head>
 			<body>
 			<h1>php-fpm exporter</h1>
