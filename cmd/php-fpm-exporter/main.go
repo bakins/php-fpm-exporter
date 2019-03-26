@@ -1,21 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"go.uber.org/zap"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	exporter "github.com/bakins/php-fpm-exporter"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
-var (
-	addr         *string
-	endpoint     *string
-	fcgiEndpoint *string
-)
+func main() {
+	var (
+		addr         = kingpin.Flag("addr", "listen address for metrics handler").Default("127.0.0.1:8080").String()
+		endpoint     = kingpin.Flag("endpoint", "url for php-fpm status").Default("http://127.0.0.1:9000/status").String()
+		fcgiEndpoint = kingpin.Flag("fastcgi", "fastcgi url. If this is set, fastcgi will be used instead of HTTP").String()
+	)
 
-func serverCmd(cmd *cobra.Command, args []string) {
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
 
 	logger, err := exporter.NewLogger()
 	if err != nil {
@@ -35,22 +35,5 @@ func serverCmd(cmd *cobra.Command, args []string) {
 
 	if err := e.Run(); err != nil {
 		logger.Fatal("failed to run exporter", zap.Error(err))
-	}
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "php-fpm-exporter",
-	Short: "php-fpm metrics exporter",
-	Run:   serverCmd,
-}
-
-func main() {
-	addr = rootCmd.PersistentFlags().StringP("addr", "", "127.0.0.1:8080", "listen address for metrics handler")
-	endpoint = rootCmd.PersistentFlags().StringP("endpoint", "", "http://127.0.0.1:9000/status", "url for php-fpm status")
-	fcgiEndpoint = rootCmd.PersistentFlags().String("fastcgi", "", "fastcgi url. If this is set, fastcgi will be used instead of HTTP")
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Printf("root command failed: %v", err)
-		os.Exit(-2)
 	}
 }
