@@ -20,10 +20,11 @@ import (
 
 // Exporter handles serving the metrics
 type Exporter struct {
-	addr         string
-	endpoint     *url.URL
-	fcgiEndpoint *url.URL
-	logger       *zap.Logger
+	addr            string
+	endpoint        *url.URL
+	fcgiEndpoint    *url.URL
+	logger          *zap.Logger
+	metricsEndpoint string
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -112,6 +113,18 @@ func SetFastcgi(rawurl string) func(*Exporter) error {
 	}
 }
 
+// SetMetricsEndpoint sets the path under which to expose metrics.
+// Generally only used when create a new Exporter.
+func SetMetricsEndpoint(path string) func(*Exporter) error {
+	return func(e *Exporter) error {
+		if path == "" || path == "/" {
+
+		}
+		e.metricsEndpoint = path
+		return nil
+	}
+}
+
 var healthzOK = []byte("ok\n")
 
 func (e *Exporter) healthz(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +142,18 @@ func (e *Exporter) Run() error {
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	http.HandleFunc("/healthz", e.healthz)
-	http.Handle("/metrics", promhttp.Handler())
+	http.Handle(e.metricsEndpoint, promhttp.Handler())
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+			<head><title>php-fpm exporter</title></head>
+			<body>
+			<h1>php-fpm exporter</h1>
+			<p><a href="` + e.metricsEndpoint + `">Metrics</a></p>
+			</body>
+			</html>`))
+	})
+
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -140,6 +164,7 @@ func (e *Exporter) Run() error {
 		// TODO: allow TLS
 		return srv.ListenAndServe()
 	})
+
 	g.Go(func() error {
 		<-stopChan
 		// XXX: should shutdown time be configurable?
