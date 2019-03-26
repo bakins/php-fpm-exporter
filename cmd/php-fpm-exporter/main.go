@@ -9,9 +9,10 @@ import (
 
 func main() {
 	var (
-		addr         = kingpin.Flag("addr", "listen address for metrics handler").Default("127.0.0.1:8080").String()
-		endpoint     = kingpin.Flag("endpoint", "url for php-fpm status").Default("http://127.0.0.1:9000/status").String()
-		fcgiEndpoint = kingpin.Flag("fastcgi", "fastcgi url. If this is set, fastcgi will be used instead of HTTP").String()
+		addr            = kingpin.Flag("addr", "listen address for metrics handler").Default("127.0.0.1:8080").String()
+		endpoint        = kingpin.Flag("endpoint", "url for php-fpm status").Default("http://127.0.0.1:9000/status").String()
+		fcgiEndpoint    = kingpin.Flag("fastcgi", "fastcgi url. If this is set, fastcgi will be used instead of HTTP").String()
+		metricsEndpoint = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics. Cannot be /").Default("/metrics").String()
 	)
 
 	kingpin.HelpFlag.Short('h')
@@ -27,6 +28,7 @@ func main() {
 		exporter.SetEndpoint(*endpoint),
 		exporter.SetFastcgi(*fcgiEndpoint),
 		exporter.SetLogger(logger),
+		exporter.SetMetricsEndpoint(*metricsEndpoint),
 	)
 
 	if err != nil {
