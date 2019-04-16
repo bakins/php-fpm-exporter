@@ -1,11 +1,13 @@
 package exporter
 
 import (
+	"container/list"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,7 +31,7 @@ type collector struct {
 	maxChildrenReached *prometheus.Desc
 	slowRequests       *prometheus.Desc
 	scrapeFailures     *prometheus.Desc
-	failureCount       int
+	targets            []*targetCollector
 }
 
 const metricsNamespace = "phpfpm"
@@ -42,19 +44,24 @@ func newFuncMetric(metricName string, docString string, labels []string) *promet
 }
 
 func (e *Exporter) newCollector() *collector {
-	return &collector{
+	c := &collector{
 		exporter:           e,
-		up:                 newFuncMetric("up", "able to contact php-fpm", nil),
-		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", nil),
-		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", nil),
-		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start", nil),
-		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections", nil),
-		phpProcesses:       newFuncMetric("processes_total", "process count", []string{"state"}),
-		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count", nil),
-		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", nil),
-		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", nil),
-		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", nil),
+		up:                 newFuncMetric("up", "able to contact php-fpm", []string{"target"}),
+		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", []string{"target"}),
+		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", []string{"target"}),
+		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start", []string{"target"}),
+		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections", []string{"target"}),
+		phpProcesses:       newFuncMetric("processes_total", "process count", []string{"target", "state"}),
+		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count", []string{"target"}),
+		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", []string{"target"}),
+		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", []string{"target"}),
+		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", []string{"target"}),
 	}
+
+	for k, v := range e.targets {
+		c.targets = append(c.targets, newTargetCollector(k, v, c))
+	}
+	return c
 }
 
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {
@@ -143,37 +150,96 @@ func getDataHTTP(u *url.URL) ([]byte, error) {
 }
 
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
+	var wg sync.WaitGroup
+
+	// simple "queue" of metrics
+	metrics := list.New()
+	var mutex sync.Mutex
+
+	for _, t := range c.targets {
+		t := t
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			out, err := t.collect()
+			if err != nil {
+				c.exporter.logger.Error("error collecting php-fpm metrics", zap.String("target", t.name), zap.Error(err))
+			}
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			for _, m := range out {
+				metrics.PushBack(m)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// should be no writers to the list, but just in case
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for e := metrics.Front(); e != nil; e = e.Next() {
+		m := e.Value.(prometheus.Metric)
+		ch <- m
+	}
+}
+
+type targetCollector struct {
+	name      string
+	url       *url.URL
+	failures  int
+	up        bool
+	collector *collector
+}
+
+func newTargetCollector(name string, url *url.URL, collector *collector) *targetCollector {
+	return &targetCollector{
+		name:      name,
+		url:       url,
+		collector: collector,
+	}
+}
+
+func (t *targetCollector) collect() ([]prometheus.Metric, error) {
 	up := 1.0
 	var (
 		body []byte
 		err  error
+		out  []prometheus.Metric
 	)
 
-	if c.exporter.fcgiEndpoint != nil && c.exporter.fcgiEndpoint.String() != "" {
-		body, err = getDataFastcgi(c.exporter.fcgiEndpoint)
-	} else {
-		body, err = getDataHTTP(c.exporter.endpoint)
+	switch t.url.Scheme {
+	case "http", "https":
+		body, err = getDataHTTP(t.url)
+	default:
+		body, err = getDataFastcgi(t.url)
 	}
 
 	if err != nil {
 		up = 0.0
-		c.exporter.logger.Error("failed to get php-fpm status", zap.Error(err))
-		c.failureCount++
+		t.failures++
 	}
-	ch <- prometheus.MustNewConstMetric(
-		c.up,
-		prometheus.GaugeValue,
-		up,
-	)
 
-	ch <- prometheus.MustNewConstMetric(
-		c.scrapeFailures,
-		prometheus.CounterValue,
-		float64(c.failureCount),
-	)
+	out = append(out,
+		prometheus.MustNewConstMetric(
+			t.collector.up,
+			prometheus.GaugeValue,
+			up,
+			t.name,
+		))
 
-	if up == 0.0 {
-		return
+	out = append(out,
+		prometheus.MustNewConstMetric(
+			t.collector.scrapeFailures,
+			prometheus.CounterValue,
+			float64(t.failures),
+			t.name,
+		))
+
+	if err != nil {
+		return out, err
 	}
 
 	matches := statusLineRegexp.FindAllStringSubmatch(string(body), -1)
@@ -186,52 +252,45 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 
 		var desc *prometheus.Desc
 		var valueType prometheus.ValueType
-		labels := []string{}
+		labels := []string{t.name}
 
 		switch key {
 		case "accepted conn":
-			desc = c.acceptedConn
+			desc = t.collector.acceptedConn
 			valueType = prometheus.CounterValue
 		case "listen queue":
-			desc = c.listenQueue
+			desc = t.collector.listenQueue
 			valueType = prometheus.GaugeValue
 		case "max listen queue":
-			desc = c.maxListenQueue
+			desc = t.collector.maxListenQueue
 			valueType = prometheus.CounterValue
 		case "listen queue len":
-			desc = c.listenQueueLength
+			desc = t.collector.listenQueueLength
 			valueType = prometheus.GaugeValue
 		case "idle processes":
-			desc = c.phpProcesses
+			desc = t.collector.phpProcesses
 			valueType = prometheus.GaugeValue
 			labels = append(labels, "idle")
 		case "active processes":
-			desc = c.phpProcesses
+			desc = t.collector.phpProcesses
 			valueType = prometheus.GaugeValue
 			labels = append(labels, "active")
 		case "max active processes":
-			desc = c.maxActiveProcesses
+			desc = t.collector.maxActiveProcesses
 			valueType = prometheus.CounterValue
 		case "max children reached":
-			desc = c.maxChildrenReached
+			desc = t.collector.maxChildrenReached
 			valueType = prometheus.CounterValue
 		case "slow requests":
-			desc = c.slowRequests
+			desc = t.collector.slowRequests
 			valueType = prometheus.CounterValue
 		default:
 			continue
 		}
 
-		m, err := prometheus.NewConstMetric(desc, valueType, float64(value), labels...)
-		if err != nil {
-			c.exporter.logger.Error(
-				"failed to create metrics",
-				zap.String("key", key),
-				zap.Error(err),
-			)
-			continue
-		}
-
-		ch <- m
+		out = append(out,
+			prometheus.MustNewConstMetric(desc, valueType, float64(value), labels...))
 	}
+
+	return out, nil
 }
