@@ -1,7 +1,6 @@
 package exporter
 
 import (
-	"container/list"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -153,7 +152,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	var wg sync.WaitGroup
 
 	// simple "queue" of metrics
-	metrics := list.New()
+	metrics := make([]prometheus.Metric, 0, len(c.targets)*10)
 	var mutex sync.Mutex
 
 	for _, t := range c.targets {
@@ -167,10 +166,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 			}
 			mutex.Lock()
 			defer mutex.Unlock()
-
-			for _, m := range out {
-				metrics.PushBack(m)
-			}
+			metrics = append(metrics, out...)
 		}()
 	}
 
@@ -180,8 +176,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	for e := metrics.Front(); e != nil; e = e.Next() {
-		m := e.Value.(prometheus.Metric)
+	for _, m := range metrics {
 		ch <- m
 	}
 }
