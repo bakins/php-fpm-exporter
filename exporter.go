@@ -24,6 +24,7 @@ type Exporter struct {
 	fcgiEndpoint    *url.URL
 	logger          *zap.Logger
 	metricsEndpoint string
+	timeout         uint
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -50,10 +51,19 @@ func New(options ...OptionsFunc) (*Exporter, error) {
 	}
 
 	if e.endpoint == nil && e.fcgiEndpoint == nil {
-		u, _ := url.Parse("http://localhost:9000/status")
+		u, _ := url.Parse("http://localhost:9000/status?text")
 		e.endpoint = u
 	}
 	return e, nil
+}
+
+// SetTimeout creates a function that will set the timeout.
+// Generally only used when create a new Exporter.
+func SetTimeout(t uint) func(*Exporter) error {
+	return func(e *Exporter) error {
+		e.timeout = t
+		return nil
+	}
 }
 
 // SetLogger creates a function that will set the logger.

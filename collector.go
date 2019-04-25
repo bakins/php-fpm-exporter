@@ -1,15 +1,16 @@
 package exporter
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	fcgiclient "github.com/tomasen/fcgi_client"
 	"go.uber.org/zap"
 )
 
@@ -70,50 +71,38 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.slowRequests
 }
 
-func getDataFastcgi(u *url.URL) ([]byte, error) {
-	path := u.Path
-	host := u.Host
+func getData(u *url.URL, fcgi *url.URL, timeout uint) ([]byte, error) {
+	transport := http.DefaultTransport
 
-	if path == "" || u.Scheme == "unix" {
-		path = "/status"
-	}
-	if u.Scheme == "unix" {
-		host = u.Path
-	}
+	if fcgi != nil {
+		var (
+			network string
+			address string
+		)
 
-	env := map[string]string{
-		"SCRIPT_FILENAME": path,
-		"SCRIPT_NAME":     path,
-	}
+		switch fcgi.Scheme {
+		case "tcp":
+			network = "tcp"
+			address = fcgi.Host
+		case "unix":
+			network = "unix"
+			address = fcgi.Path
+		default:
+			return nil, errors.Errorf("unknown scheme: %s", fcgi.Scheme)
+		}
 
-	fcgi, err := fcgiclient.Dial(u.Scheme, host)
-	if err != nil {
-		return nil, errors.Wrap(err, "fastcgi dial failed")
-	}
-
-	defer fcgi.Close()
-
-	resp, err := fcgi.Get(env)
-	if err != nil {
-		return nil, errors.Wrap(err, "fastcgi get failed")
+		transport = &FastCGITransport{
+			Network: network,
+			Address: address,
+		}
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 && resp.StatusCode != 0 {
-		return nil, errors.Errorf("unexpected status: %d", resp.StatusCode)
+	client := http.Client{
+		Transport: transport,
+		Timeout:   time.Duration(time.Duration(timeout) * time.Second),
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read fastcgi body")
-	}
-
-	return body, nil
-}
-
-func getDataHTTP(u *url.URL) ([]byte, error) {
-	req := http.Request{
+	req := &http.Request{
 		Method:     "GET",
 		URL:        u,
 		Proto:      "HTTP/1.1",
@@ -123,7 +112,10 @@ func getDataHTTP(u *url.URL) ([]byte, error) {
 		Host:       u.Host,
 	}
 
-	resp, err := http.DefaultClient.Do(&req)
+	ctx, cancel := context.WithDeadline(req.Context(), time.Now().Add(time.Duration(timeout)*time.Second))
+	defer cancel()
+
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "HTTP request failed")
 	}
@@ -144,16 +136,8 @@ func getDataHTTP(u *url.URL) ([]byte, error) {
 
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	up := 1.0
-	var (
-		body []byte
-		err  error
-	)
 
-	if c.exporter.fcgiEndpoint != nil && c.exporter.fcgiEndpoint.String() != "" {
-		body, err = getDataFastcgi(c.exporter.fcgiEndpoint)
-	} else {
-		body, err = getDataHTTP(c.exporter.endpoint)
-	}
+	body, err := getData(c.exporter.endpoint, c.exporter.fcgiEndpoint, c.exporter.timeout)
 
 	if err != nil {
 		up = 0.0

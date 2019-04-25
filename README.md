@@ -48,7 +48,7 @@ To use the HTTP endpoint you must pass through `/status` in your webserver
 and configure php-fpm to handle status requests. Example for nginx: https://easyengine.io/tutorials/php/fpm-status-page/
 
 To use Fastcgi, set `--fastcgi` to a url such as `tcp://127.0.0.1:9090/status` if php-fpm is listening on a tcp socket or 
-`unix:///path/to/php.sock` for a unix socket. Note: php-fpm must be configured to use `/status` if using a unix socket, `php-fpm-exporter` does not currently support changing this.
+`unix:///path/to/php.sock` for a unix socket. Note: the `--endpoint` url will be used as the request over fcgi so it should work just like on your webserver.
 
 Metrics
 =======
