@@ -35,7 +35,7 @@ go.uber.org/zap/zapcore
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
-# golang.org/x/net v0.0.0-20170114055629-f2499483f923
+# golang.org/x/net v0.0.0-20190415214537-1da14a5a36f2
 golang.org/x/net/context
 # golang.org/x/sync v0.0.0-20170418210838-de49d9dcd27d
 golang.org/x/sync/errgroup

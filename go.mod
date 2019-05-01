@@ -17,7 +17,7 @@ require (
 	github.com/tomasen/fcgi_client v0.0.0-20171212193905-d32b71631a94
 	go.uber.org/atomic v1.3.1 // indirect
 	go.uber.org/zap v1.4.1
-	golang.org/x/net v0.0.0-20170114055629-f2499483f923 // indirect
+	golang.org/x/net v0.0.0-20190415214537-1da14a5a36f2 // indirect
 	golang.org/x/sync v0.0.0-20170418210838-de49d9dcd27d
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
