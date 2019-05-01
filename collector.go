@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -75,8 +76,12 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 	host := u.Host
 
 	if path == "" || u.Scheme == "unix" {
-		path = "/status"
+		path = u.Fragment
+		if path == "" {
+			path = "/status"
+		}
 	}
+
 	if u.Scheme == "unix" {
 		host = u.Path
 	}
@@ -85,6 +90,8 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 		"SCRIPT_FILENAME": path,
 		"SCRIPT_NAME":     path,
 	}
+
+	fmt.Println(env)
 
 	fcgi, err := fcgiclient.Dial(u.Scheme, host)
 	if err != nil {
