@@ -4,6 +4,7 @@ NAME=php-fpm-exporter
 ARCH=amd64
 
 export GOFLAGS=-mod=vendor
+export GO111MODULE=on
 
 for OS in darwin linux; do
     FILE=${NAME}.${OS}.${ARCH}
