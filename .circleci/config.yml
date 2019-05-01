@@ -21,6 +21,7 @@ workflows:
       - test
   release:
     jobs:
+      - test
       - release:
           filters:
             branches:
