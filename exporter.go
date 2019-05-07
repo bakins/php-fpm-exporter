@@ -81,15 +81,8 @@ func SetAddress(addr string) func(*Exporter) error {
 // SetEndpoint creates a function that will set the URL endpoint to contact
 // php-fpm.
 // Generally only used when create a new Exporter.
-func SetEndpoint(rawurl string) func(*Exporter) error {
+func SetEndpoint(u *url.URL) func(*Exporter) error {
 	return func(e *Exporter) error {
-		if rawurl == "" {
-			return nil
-		}
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse url")
-		}
 		e.endpoint = u
 		return nil
 	}
@@ -98,15 +91,8 @@ func SetEndpoint(rawurl string) func(*Exporter) error {
 // SetFastcgi creates a function that will set the fastcgi URL endpoint to contact
 // php-fpm. If this is set, then fastcgi is used rather than HTTP.
 // Generally only used when create a new Exporter.
-func SetFastcgi(rawurl string) func(*Exporter) error {
+func SetFastcgi(u *url.URL) func(*Exporter) error {
 	return func(e *Exporter) error {
-		if rawurl == "" {
-			return nil
-		}
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse url")
-		}
 		e.fcgiEndpoint = u
 		return nil
 	}

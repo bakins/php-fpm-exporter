@@ -75,8 +75,12 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 	host := u.Host
 
 	if path == "" || u.Scheme == "unix" {
-		path = "/status"
+		path = u.Fragment
+		if path == "" {
+			path = "/status"
+		}
 	}
+
 	if u.Scheme == "unix" {
 		host = u.Path
 	}
