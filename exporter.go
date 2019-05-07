@@ -20,8 +20,7 @@ import (
 // Exporter handles serving the metrics
 type Exporter struct {
 	addr            string
-	endpoint        *url.URL
-	fcgiEndpoint    *url.URL
+	targets         map[string]*url.URL
 	logger          *zap.Logger
 	metricsEndpoint string
 }
@@ -32,7 +31,8 @@ type OptionsFunc func(*Exporter) error
 // New creates an exporter.
 func New(options ...OptionsFunc) (*Exporter, error) {
 	e := &Exporter{
-		addr: ":9090",
+		addr:    ":9090",
+		targets: make(map[string]*url.URL),
 	}
 
 	for _, f := range options {
@@ -49,9 +49,9 @@ func New(options ...OptionsFunc) (*Exporter, error) {
 		e.logger = l
 	}
 
-	if e.endpoint == nil && e.fcgiEndpoint == nil {
+	if len(e.targets) == 0 {
 		u, _ := url.Parse("http://localhost:9000/status")
-		e.endpoint = u
+		e.targets["default"] = u
 	}
 	return e, nil
 }
@@ -78,36 +78,19 @@ func SetAddress(addr string) func(*Exporter) error {
 	}
 }
 
-// SetEndpoint creates a function that will set the URL endpoint to contact
-// php-fpm.
+// SetTargets creates a function that will set the target URL's for scraping
 // Generally only used when create a new Exporter.
-func SetEndpoint(rawurl string) func(*Exporter) error {
+func SetTargets(in map[string]string) func(*Exporter) error {
 	return func(e *Exporter) error {
-		if rawurl == "" {
-			return nil
+		targets := make(map[string]*url.URL)
+		for k, v := range in {
+			u, err := url.Parse(v)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse url")
+			}
+			targets[k] = u
 		}
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse url")
-		}
-		e.endpoint = u
-		return nil
-	}
-}
-
-// SetFastcgi creates a function that will set the fastcgi URL endpoint to contact
-// php-fpm. If this is set, then fastcgi is used rather than HTTP.
-// Generally only used when create a new Exporter.
-func SetFastcgi(rawurl string) func(*Exporter) error {
-	return func(e *Exporter) error {
-		if rawurl == "" {
-			return nil
-		}
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse url")
-		}
-		e.fcgiEndpoint = u
+		e.targets = targets
 		return nil
 	}
 }

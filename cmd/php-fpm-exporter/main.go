@@ -13,6 +13,7 @@ func main() {
 		endpoint        = kingpin.Flag("endpoint", "url for php-fpm status").Default("http://127.0.0.1:9000/status").String()
 		fcgiEndpoint    = kingpin.Flag("fastcgi", "fastcgi url. If this is set, fastcgi will be used instead of HTTP").String()
 		metricsEndpoint = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics. Cannot be /").Default("/metrics").String()
+		targets         = kingpin.Flag("targets", "targets for scraping in the form name=url").StringMap()
 	)
 
 	kingpin.HelpFlag.Short('h')
@@ -23,10 +24,18 @@ func main() {
 		panic(err)
 	}
 
+	t := *targets
+	if len(t) == 0 {
+		if *fcgiEndpoint != "" {
+			t["default"] = *fcgiEndpoint
+		} else {
+			t["default"] = *endpoint
+		}
+	}
+
 	e, err := exporter.New(
 		exporter.SetAddress(*addr),
-		exporter.SetEndpoint(*endpoint),
-		exporter.SetFastcgi(*fcgiEndpoint),
+		exporter.SetTargets(t),
 		exporter.SetLogger(logger),
 		exporter.SetMetricsEndpoint(*metricsEndpoint),
 	)
