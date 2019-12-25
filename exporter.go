@@ -2,7 +2,6 @@ package exporter
 
 import (
 	"context"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
