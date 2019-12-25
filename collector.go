@@ -1,13 +1,12 @@
 package exporter
 
 import (
+	"crypto/tls"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
-	"crypto/tls"
-
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -126,7 +125,7 @@ func (c *collector) getDataHTTP(u *url.URL) ([]byte, error) {
 	}
 
 	var client *http.Client
-	if (c.exporter.authConfig.ClientCert != "") {
+	if c.exporter.authConfig.ClientCert != "" {
 		cert, err := tls.LoadX509KeyPair(c.exporter.authConfig.ClientCert, c.exporter.authConfig.ClientKey)
 		if err != nil {
 			return nil, errors.Wrap(err, "Could not load cert and/or key")
@@ -135,7 +134,7 @@ func (c *collector) getDataHTTP(u *url.URL) ([]byte, error) {
 		client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					Certificates: []tls.Certificate{cert},
+					Certificates:       []tls.Certificate{cert},
 					InsecureSkipVerify: c.exporter.authConfig.AllowInsecureServerCert,
 				},
 			},
@@ -144,9 +143,9 @@ func (c *collector) getDataHTTP(u *url.URL) ([]byte, error) {
 		client = http.DefaultClient
 	}
 
-	if (c.exporter.authConfig.AuthUser != "") {
-        req.SetBasicAuth(c.exporter.authConfig.AuthUser, c.exporter.authConfig.AuthPass)
-    }
+	if c.exporter.authConfig.AuthUser != "" {
+		req.SetBasicAuth(c.exporter.authConfig.AuthUser, c.exporter.authConfig.AuthPass)
+	}
 
 	resp, err := client.Do(&req)
 	if err != nil {
