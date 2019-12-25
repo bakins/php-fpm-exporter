@@ -5,3 +5,6 @@ This directory contains simple configurations for testing.
 `nginx -c `pwd`/nginx.conf`
 
 `php-fpm-exporter`
+
+`php-fpm-exporter --auth.config ./php-fpm.example.yml`
+

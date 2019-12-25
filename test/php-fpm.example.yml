@@ -1,0 +1,5 @@
+clientcert: client.cer
+clientkey: client.key
+allow_insecure_server_cert: yes
+authuser: user
+authpass: pass

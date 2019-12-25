@@ -13,6 +13,7 @@ func main() {
 		endpoint        = kingpin.Flag("endpoint", "url for php-fpm status").Default("http://127.0.0.1:9000/status").String()
 		fcgiEndpoint    = kingpin.Flag("fastcgi", "fastcgi url. If this is set, fastcgi will be used instead of HTTP").String()
 		metricsEndpoint = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics. Cannot be /").Default("/metrics").String()
+		authConfigFile  = kingpin.Flag("auth.config", "Configuration file with authentication information, i.e. HTTP Auth and TLS client certificates").Default("").String()
 	)
 
 	kingpin.HelpFlag.Short('h')
@@ -29,6 +30,7 @@ func main() {
 		exporter.SetFastcgi(*fcgiEndpoint),
 		exporter.SetLogger(logger),
 		exporter.SetMetricsEndpoint(*metricsEndpoint),
+		exporter.SetAuthConfig(*authConfigFile),
 	)
 
 	if err != nil {

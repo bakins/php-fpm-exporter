@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"context"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -10,12 +11,23 @@ import (
 	"syscall"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
+
+// AuthenticationConfiguration is the in-memory, decoded representation of the authentication configuration file
+type AuthenticationConfiguration struct {
+	ClientCert              string `yaml:"clientcert"`
+	ClientKey               string `yaml:"clientkey"`
+	AllowInsecureServerCert bool   `yaml:"allow_insecure_server_cert"`
+	AuthUser                string `yaml:"authuser"`
+	AuthPass                string `yaml:"authpass"`
+}
 
 // Exporter handles serving the metrics
 type Exporter struct {
@@ -24,6 +36,7 @@ type Exporter struct {
 	fcgiEndpoint    *url.URL
 	logger          *zap.Logger
 	metricsEndpoint string
+	authConfig      AuthenticationConfiguration
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -122,6 +135,38 @@ func SetMetricsEndpoint(path string) func(*Exporter) error {
 		e.metricsEndpoint = path
 		return nil
 	}
+}
+
+//SetAuthConfig sets the authentication configuration for connecting to the endpoint(s)
+//Generally only used when creating a new Exporter.
+func SetAuthConfig(authConfigFile string) func(*Exporter) error {
+	return func(e *Exporter) error {
+		if authConfigFile != "" {
+			authConfig, err := readAuthConfig(authConfigFile)
+			if err != nil {
+				return errors.Wrap(err, "failed to read authentication configuration file")
+			}
+			e.authConfig = authConfig
+		}
+		return nil
+	}
+}
+
+//readAuthConfig reads authentication configuration from auth.config file passed as command-line parameter
+func readAuthConfig(authConfigFile string) (AuthenticationConfiguration, error) {
+
+	var authConfig AuthenticationConfiguration
+
+	yamlString, err := ioutil.ReadFile(authConfigFile)
+	if err != nil {
+		return authConfig, errors.Wrap(err, "failed to read authentication configuration file")
+	}
+
+	err = yaml.Unmarshal(yamlString, &authConfig)
+	if err != nil {
+		return authConfig, errors.Wrap(err, "failed to unmarshal authentication configuration file")
+	}
+	return authConfig, nil
 }
 
 var healthzOK = []byte("ok\n")
