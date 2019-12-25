@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"crypto/tls"
+
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -112,7 +114,7 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 	return body, nil
 }
 
-func getDataHTTP(u *url.URL) ([]byte, error) {
+func (c *collector) getDataHTTP(u *url.URL) ([]byte, error) {
 	req := http.Request{
 		Method:     "GET",
 		URL:        u,
@@ -123,7 +125,30 @@ func getDataHTTP(u *url.URL) ([]byte, error) {
 		Host:       u.Host,
 	}
 
-	resp, err := http.DefaultClient.Do(&req)
+	var client *http.Client
+	if (c.exporter.authConfig.ClientCert != "") {
+		cert, err := tls.LoadX509KeyPair(c.exporter.authConfig.ClientCert, c.exporter.authConfig.ClientKey)
+		if err != nil {
+			return nil, errors.Wrap(err, "Could not load cert and/or key")
+		}
+
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					Certificates: []tls.Certificate{cert},
+					InsecureSkipVerify: c.exporter.authConfig.AllowInsecureServerCert,
+				},
+			},
+		}
+	} else {
+		client = http.DefaultClient
+	}
+
+	if (c.exporter.authConfig.AuthUser != "") {
+        req.SetBasicAuth(c.exporter.authConfig.AuthUser, c.exporter.authConfig.AuthPass)
+    }
+
+	resp, err := client.Do(&req)
 	if err != nil {
 		return nil, errors.Wrap(err, "HTTP request failed")
 	}
@@ -152,7 +177,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	if c.exporter.fcgiEndpoint != nil && c.exporter.fcgiEndpoint.String() != "" {
 		body, err = getDataFastcgi(c.exporter.fcgiEndpoint)
 	} else {
-		body, err = getDataHTTP(c.exporter.endpoint)
+		body, err = c.getDataHTTP(c.exporter.endpoint)
 	}
 
 	if err != nil {

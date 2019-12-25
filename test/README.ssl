@@ -1,0 +1,23 @@
+#From here: https://www.makethenmakeinstall.com/2014/05/ssl-client-authentication-step-by-step/
+#and here for the crl: https://blog.didierstevens.com/2013/05/08/howto-make-your-own-cert-and-revocation-list-with-openssl/
+
+#generate CA
+#openssl req -newkey rsa:4096 -keyform PEM -keyout ca.key -x509 -days 3650 -outform PEM -out ca.cer
+
+#generate CRL
+mkdir demoCA
+touch demoCA/index.txt
+echo 01 > demoCA/crlnumber
+openssl ca -gencrl -keyfile ca.key -cert ca.cer -out ca.crl.pem
+
+openssl genrsa -out server.key 4096
+openssl req -new -key server.key -out server.req -sha256
+openssl x509 -req -in server.req -CA ca.cer -CAkey ca.key -set_serial 100 -extensions server -days 1460 -outform PEM -out server.cer -sha256
+rm server.req
+
+openssl genrsa -out client.key 4096
+openssl req -new -key client.key -out client.req
+openssl x509 -req -in client.req -CA ca.cer -CAkey ca.key -set_serial 101 -extensions client -days 365 -outform PEM -out client.cer
+openssl pkcs12 -export -inkey client.key -in client.cer -out client.p12
+rm client.req
+
