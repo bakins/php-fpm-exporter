@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 	"gopkg.in/yaml.v2"
-    "io/ioutil"
+	"io/ioutil"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -21,11 +21,11 @@ import (
 
 // AuthenticationConfiguration is the in-memory, decoded representation of the authentication configuration file
 type AuthenticationConfiguration struct {
-    ClientCert string `yaml:"clientcert"`
+	ClientCert string `yaml:"clientcert"`
 	ClientKey string `yaml:"clientkey"`
 	AllowInsecureServerCert bool `yaml:"allow_insecure_server_cert"`
-    AuthUser string `yaml:"authuser"`
-    AuthPass string `yaml:"authpass"`
+	AuthUser string `yaml:"authuser"`
+	AuthPass string `yaml:"authpass"`
 }
 
 // Exporter handles serving the metrics

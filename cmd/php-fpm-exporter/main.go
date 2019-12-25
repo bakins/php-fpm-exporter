@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
-	exporter "github.com/eelmasllari/php-fpm-exporter"
+	exporter "github.com/bakins/php-fpm-exporter"
 )
 
 func main() {

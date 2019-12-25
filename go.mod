@@ -1,4 +1,4 @@
-module github.com/eelmasllari/php-fpm-exporter
+module github.com/bakins/php-fpm-exporter
 
 go 1.12
 
