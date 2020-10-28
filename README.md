@@ -37,17 +37,19 @@ Usage:
   php-fpm-exporter [flags]
 
 Flags:
-      --addr string       listen address for metrics handler (default "127.0.0.1:8080")
-      --endpoint string   url for php-fpm status (default "http://127.0.0.1:9000/status")
-      --fastcgi string    fastcgi url. If this is set, fastcgi will be used instead of HTTP
+      --addr="127.0.0.1:8080"                       listen address for metrics handler
+      --endpoint="http://127.0.0.1:9000/status"     url for php-fpm status
+      --fastcgi=FASTCGI                             fastcgi url. If this is set, fastcgi will be used instead of HTTP
+      --web.telemetry-path="/metrics"               Path under which to expose metrics. Cannot be /
+      --labels=LABELS                               A list of labels, that will be assigned to all metrics. For example "service=api,dc=us-west"
 ```
 
 When running, a simple healthcheck is available on `/healthz`
 
-To use the HTTP endpoint you must pass through `/status` in your webserver 
+To use the HTTP endpoint you must pass through `/status` in your webserver
 and configure php-fpm to handle status requests. Example for nginx: https://easyengine.io/tutorials/php/fpm-status-page/
 
-To use Fastcgi, set `--fastcgi` to a url such as `tcp://127.0.0.1:9090/status` if php-fpm is listening on a tcp socket or 
+To use Fastcgi, set `--fastcgi` to a url such as `tcp://127.0.0.1:9090/status` if php-fpm is listening on a tcp socket or
 `unix:///path/to/php.sock` for a unix socket. Note: php-fpm must be configured to use `/status` if using a unix socket, `php-fpm-exporter` does not currently support changing this.
 
 Metrics

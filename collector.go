@@ -34,26 +34,26 @@ type collector struct {
 
 const metricsNamespace = "phpfpm"
 
-func newFuncMetric(metricName string, docString string, labels []string) *prometheus.Desc {
+func newFuncMetric(metricName string, docString string, labels []string, constLabels prometheus.Labels) *prometheus.Desc {
 	return prometheus.NewDesc(
 		prometheus.BuildFQName(metricsNamespace, "", metricName),
-		docString, labels, nil,
+		docString, labels, constLabels,
 	)
 }
 
 func (e *Exporter) newCollector() *collector {
 	return &collector{
 		exporter:           e,
-		up:                 newFuncMetric("up", "able to contact php-fpm", nil),
-		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", nil),
-		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", nil),
-		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start", nil),
-		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections", nil),
-		phpProcesses:       newFuncMetric("processes_total", "process count", []string{"state"}),
-		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count", nil),
-		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", nil),
-		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", nil),
-		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", nil),
+		up:                 newFuncMetric("up", "able to contact php-fpm", nil, e.constantLabels),
+		acceptedConn:       newFuncMetric("accepted_connections_total", "Total number of accepted connections", nil, e.constantLabels),
+		listenQueue:        newFuncMetric("listen_queue_connections", "Number of connections that have been initiated but not yet accepted", nil, e.constantLabels),
+		maxListenQueue:     newFuncMetric("listen_queue_max_connections", "Max number of connections the listen queue has reached since FPM start", nil, e.constantLabels),
+		listenQueueLength:  newFuncMetric("listen_queue_length_connections", "The length of the socket queue, dictating maximum number of pending connections", nil, e.constantLabels),
+		phpProcesses:       newFuncMetric("processes_total", "process count", []string{"state"}, e.constantLabels),
+		maxActiveProcesses: newFuncMetric("active_max_processes", "Maximum active process count", nil, e.constantLabels),
+		maxChildrenReached: newFuncMetric("max_children_reached_total", "Number of times the process limit has been reached", nil, e.constantLabels),
+		slowRequests:       newFuncMetric("slow_requests_total", "Number of requests that exceed request_slowlog_timeout", nil, e.constantLabels),
+		scrapeFailures:     newFuncMetric("scrape_failures_total", "Number of errors while scraping php_fpm", nil, e.constantLabels),
 	}
 }
 

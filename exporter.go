@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,6 +25,7 @@ type Exporter struct {
 	fcgiEndpoint    *url.URL
 	logger          *zap.Logger
 	metricsEndpoint string
+	constantLabels  prometheus.Labels
 }
 
 // OptionsFunc is a function passed to new for setting options on a new Exporter.
@@ -91,6 +93,23 @@ func SetEndpoint(rawurl string) func(*Exporter) error {
 			return errors.Wrap(err, "failed to parse url")
 		}
 		e.endpoint = u
+		return nil
+	}
+}
+
+func SetLabels(labels string) func(*Exporter) error {
+	return func(e *Exporter) error {
+		if labels == "" {
+			return nil
+		}
+
+		labelsMap := make(map[string]string)
+		for _, label := range strings.Split(labels, ",") {
+			kv := strings.Split(label, "=")
+			labelsMap[kv[0]] = kv[1]
+		}
+
+		e.constantLabels = labelsMap
 		return nil
 	}
 }
