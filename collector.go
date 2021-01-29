@@ -3,7 +3,6 @@ package exporter
 import (
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 
@@ -70,7 +69,8 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.slowRequests
 }
 
-func getDataFastcgi(u *url.URL) ([]byte, error) {
+func (c *collector) getDataFastcgi() ([]byte, error) {
+	u := c.exporter.fcgiEndpoint
 	path := u.Path
 	host := u.Host
 
@@ -86,12 +86,16 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 		"SCRIPT_NAME":     path,
 	}
 
-	fcgi, err := fcgiclient.Dial(u.Scheme, host)
+	fcgi, err := fcgiclient.DialTimeout(u.Scheme, host, c.exporter.statusTimeout)
 	if err != nil {
 		return nil, errors.Wrap(err, "fastcgi dial failed")
 	}
 
 	defer fcgi.Close()
+
+	if err = fcgi.SetTimeout(c.exporter.statusTimeout); err != nil {
+		return nil, errors.Wrap(err, "fastcgi SetTimeout failed")
+	}
 
 	resp, err := fcgi.Get(env)
 	if err != nil {
@@ -112,7 +116,8 @@ func getDataFastcgi(u *url.URL) ([]byte, error) {
 	return body, nil
 }
 
-func getDataHTTP(u *url.URL) ([]byte, error) {
+func (c *collector) getDataHTTP() ([]byte, error) {
+	u := c.exporter.endpoint
 	req := http.Request{
 		Method:     "GET",
 		URL:        u,
@@ -123,7 +128,7 @@ func getDataHTTP(u *url.URL) ([]byte, error) {
 		Host:       u.Host,
 	}
 
-	resp, err := http.DefaultClient.Do(&req)
+	resp, err := (&http.Client{Timeout: c.exporter.statusTimeout}).Do(&req)
 	if err != nil {
 		return nil, errors.Wrap(err, "HTTP request failed")
 	}
@@ -150,9 +155,9 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	)
 
 	if c.exporter.fcgiEndpoint != nil && c.exporter.fcgiEndpoint.String() != "" {
-		body, err = getDataFastcgi(c.exporter.fcgiEndpoint)
+		body, err = c.getDataFastcgi()
 	} else {
-		body, err = getDataHTTP(c.exporter.endpoint)
+		body, err = c.getDataHTTP()
 	}
 
 	if err != nil {

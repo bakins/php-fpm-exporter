@@ -21,3 +21,7 @@ require (
 	golang.org/x/sync v0.0.0-20170418210838-de49d9dcd27d
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
+
+replace (
+	github.com/tomasen/fcgi_client => github.com/kanocz/fcgi_client v0.0.0-20210113082628-fff85c8adfb7
+)

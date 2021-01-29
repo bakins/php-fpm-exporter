@@ -8,6 +8,8 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/protobuf v0.0.0-20170331031902-2bba0603135d h1:KmiEmEGA5sqizMpKnexwioxj8zEUSBc7p9UTQu36lpQ=
 github.com/golang/protobuf v0.0.0-20170331031902-2bba0603135d/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/kanocz/fcgi_client v0.0.0-20210113082628-fff85c8adfb7 h1:W0fAsQ7bC1db4k9O2X6yZvatz/0c/ISyxhmNnc6arZA=
+github.com/kanocz/fcgi_client v0.0.0-20210113082628-fff85c8adfb7/go.mod h1:dHpIS7C6YjFguh5vo9QBVEojDoL3vh3v6oEho2HtNyA=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/pkg/errors v0.8.0 h1:WdK/asTD0HN+q6hsWO3/vpuAkAr+tw6aNJNDFFf0+qw=
