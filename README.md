@@ -37,9 +37,10 @@ Usage:
   php-fpm-exporter [flags]
 
 Flags:
-      --addr string       listen address for metrics handler (default "127.0.0.1:8080")
-      --endpoint string   url for php-fpm status (default "http://127.0.0.1:9000/status")
-      --fastcgi string    fastcgi url. If this is set, fastcgi will be used instead of HTTP
+      --addr string               listen address for metrics handler (default "127.0.0.1:8080")
+      --endpoint string           url for php-fpm status (default "http://127.0.0.1:9000/status")
+      --fastcgi string            fastcgi url. If this is set, fastcgi will be used instead of HTTP
+      --status.timeout duration   Scrape timeout for php-fpm status. If unset, then will wait forever.
 ```
 
 When running, a simple healthcheck is available on `/healthz`
