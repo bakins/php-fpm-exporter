@@ -3,10 +3,8 @@ package exporter
 import (
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
