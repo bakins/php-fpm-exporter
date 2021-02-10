@@ -53,7 +53,7 @@ To use Fastcgi, set `--fastcgi` to a url such as `tcp://127.0.0.1:9090/status` i
 Metrics
 =======
 
-Metrics will be exposes on `/metrics`
+Metrics are exposed on `/metrics`
 
 LICENSE
 ========
