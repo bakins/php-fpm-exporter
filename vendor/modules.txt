@@ -18,8 +18,8 @@ github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.0.0-20170220103846-49fee292b27b
 github.com/prometheus/common/expfmt
-github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.0-20170216223256-a1dba9ce8bae
 github.com/prometheus/procfs
 github.com/prometheus/procfs/xfs
@@ -29,15 +29,13 @@ github.com/tomasen/fcgi_client
 go.uber.org/atomic
 # go.uber.org/zap v1.4.1
 go.uber.org/zap
-go.uber.org/zap/internal/bufferpool
-go.uber.org/zap/internal/multierror
-go.uber.org/zap/zapcore
 go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
-# golang.org/x/net v0.0.0-20190415214537-1da14a5a36f2
-golang.org/x/net/context
-# golang.org/x/sync v0.0.0-20170418210838-de49d9dcd27d
+go.uber.org/zap/internal/multierror
+go.uber.org/zap/zapcore
+# golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 golang.org/x/sync/errgroup
 # gopkg.in/alecthomas/kingpin.v2 v2.2.6
 gopkg.in/alecthomas/kingpin.v2
